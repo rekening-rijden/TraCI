@@ -1,4 +1,5 @@
 import os, sys
+import config
 from concurrent.futures import ThreadPoolExecutor
 from re import X
 if 'SUMO_HOME' in os.environ:
@@ -12,20 +13,22 @@ sumoConfig = [sumoBinary, "-c", "osm.sumocfg"]
 
 import traci
 
+#Array to save responsetimes for performance testing
 responseTimes = []
 
-url = "https://restcountries.com/v3.1/all"
-
+#Converts simulation coordinates to geo coordinates
 def send_request(x, y, vId):
     geolocation = traci.simulation.convertGeo(x, y)
     print(vId + ': ' + str(geolocation[0]) + ', ' + str(geolocation[1]))
 
+#Multithreading Runner
 def runner(_vehicleList, locationList):
     threads = []
-    with ThreadPoolExecutor(max_workers=500) as executor:
+    with ThreadPoolExecutor(max_workers=config.multithreading['workerAmount']) as executor:
         for i in range(len(_vehicleList)):
             threads.append(send_request(locationList[i][0], locationList[i][1], _vehicleList[i]))
 
+#Listener for steps from server
 class ExampleListener(traci.StepListener):
     def step(self, t):
         vehicleIdList = traci.vehicle.getIDList()
@@ -47,4 +50,5 @@ while step < 2500:
     traci.simulationStep()
     step += 1
 
+#Connection is closed after step limit is reached
 traci.close(False)
